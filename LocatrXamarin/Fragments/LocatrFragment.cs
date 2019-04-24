@@ -24,13 +24,13 @@ namespace LocatrXamarin.Fragments
     public class LocatrFragment : Fragment, GoogleApiClient.IConnectionCallbacks, IRationaleCallback
     {
         private new const string Tag = "LocatrFragment";
-        private const string DialogRationale = "DialogRationale";
         private const int RequestLocationPermissions = 0;
         private const int RequestRationale = 1;
 
         private string[] _locationPermissions = new string[] { Manifest.Permission.AccessFineLocation, Manifest.Permission.AccessCoarseLocation };
 
         private ImageView _imageView;
+        private ProgressBar _progressBar;
         private GoogleApiClient _client;
 
         public static LocatrFragment NewInstance()
@@ -54,6 +54,7 @@ namespace LocatrXamarin.Fragments
         {
             View view = inflater.Inflate(Resource.Layout.fragment_locatr, container, false);
             _imageView = view.FindViewById<ImageView>(Resource.Id.image);
+            _progressBar = view.FindViewById<ProgressBar>(Resource.Id.indeterminateBar);
 
             return view;
         }
@@ -89,6 +90,7 @@ namespace LocatrXamarin.Fragments
                 case Resource.Id.action_locate:
                     if (HasLocationPermission())
                     {
+                        SetProgressVisibility(true);
                         FindImage();
                     }
                     else
@@ -102,7 +104,7 @@ namespace LocatrXamarin.Fragments
                             var manager = Activity.SupportFragmentManager;
                             var dialog = new RationaleDialogFragment();
                             dialog.SetTargetFragment(this, RequestRationale);
-                            dialog.Show(manager, DialogRationale);
+                            dialog.Show(manager, nameof(RationaleDialogFragment));
                         }
                     }
 
@@ -156,7 +158,22 @@ namespace LocatrXamarin.Fragments
 
         private void OnBitmapFetched(Bitmap obj)
         {
+            SetProgressVisibility(false);
             _imageView.SetImageBitmap(obj);
+        }
+
+        private void SetProgressVisibility(bool isVisible)
+        {
+            if (isVisible)
+            {
+                _progressBar.Visibility = ViewStates.Visible;
+                _imageView.Visibility = ViewStates.Gone;
+            }
+            else
+            {
+                _progressBar.Visibility = ViewStates.Gone;
+                _imageView.Visibility = ViewStates.Visible;
+            }
         }
 
         private void FindImage()
