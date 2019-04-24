@@ -3556,6 +3556,9 @@ namespace LocatrXamarin
 			// aapt resource value: 0x7f090036
 			public const int path_password_strike_through = 2131296310;
 			
+			// aapt resource value: 0x7f09003b
+			public const int rationale = 2131296315;
+			
 			// aapt resource value: 0x7f09003a
 			public const int search = 2131296314;
 			

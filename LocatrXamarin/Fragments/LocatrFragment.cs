@@ -17,13 +17,17 @@ using Java.IO;
 using Java.Lang;
 using LocatrXamarin.Listeners;
 using LocatrXamarin.Models;
+using static LocatrXamarin.Fragments.RationaleDialogFragment;
 
 namespace LocatrXamarin.Fragments
 {
-    public class LocatrFragment : Fragment, GoogleApiClient.IConnectionCallbacks
+    public class LocatrFragment : Fragment, GoogleApiClient.IConnectionCallbacks, IRationaleCallback
     {
         private new const string Tag = "LocatrFragment";
+        private const string DialogRationale = "DialogRationale";
         private const int RequestLocationPermissions = 0;
+        private const int RequestRationale = 1;
+
         private string[] _locationPermissions = new string[] { Manifest.Permission.AccessFineLocation, Manifest.Permission.AccessCoarseLocation };
 
         private ImageView _imageView;
@@ -89,22 +93,23 @@ namespace LocatrXamarin.Fragments
                     }
                     else
                     {
-                        RequestPermissions(_locationPermissions, RequestLocationPermissions);
+                        if (ShouldShowRequestPermissionRationale(_locationPermissions[0]) == false)
+                        {
+                            RequestPermissions(_locationPermissions, RequestLocationPermissions);
+                        }
+                        else
+                        {
+                            var manager = Activity.SupportFragmentManager;
+                            var dialog = new RationaleDialogFragment();
+                            dialog.SetTargetFragment(this, RequestRationale);
+                            dialog.Show(manager, DialogRationale);
+                        }
                     }
 
                     return true;
                 default:
                     return base.OnOptionsItemSelected(item);
             }
-        }
-
-        public void OnConnected(Bundle connectionHint)
-        {
-            Activity.InvalidateOptionsMenu();
-        }
-
-        public void OnConnectionSuspended(int cause)
-        {
         }
 
         public override void OnRequestPermissionsResult(int requestCode, string[] permissions, [GeneratedEnum] Permission[] grantResults)
@@ -123,6 +128,20 @@ namespace LocatrXamarin.Fragments
 
                     break;
             }
+        }
+
+        public void OnConnected(Bundle connectionHint)
+        {
+            Activity.InvalidateOptionsMenu();
+        }
+
+        public void OnConnectionSuspended(int cause)
+        {
+        }
+
+        public void OnRationaleDialogDismissed()
+        {
+            RequestPermissions(_locationPermissions, RequestLocationPermissions);
         }
 
         private void OnLocationChanged(Location location)

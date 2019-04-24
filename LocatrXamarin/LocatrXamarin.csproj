@@ -69,6 +69,7 @@
     <Compile Include="Listeners\OnCancelListener.cs" />
     <Compile Include="Listeners\NewLocationListener.cs" />
     <Compile Include="XamarinAsyncTask.cs" />
+    <Compile Include="Fragments\RationaleDialogFragment.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\AboutResources.txt" />
