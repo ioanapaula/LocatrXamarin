@@ -22,7 +22,7 @@ namespace LocatrXamarin
                     .AppendQueryParameter("api_key", ApiKey)
                     .AppendQueryParameter("format", "json")
                     .AppendQueryParameter("nojsoncallback", "1")
-                    .AppendQueryParameter("extras", "url_s")
+                    .AppendQueryParameter("extras", "url_s,geo")
                     .Build();
 
         public List<GalleryItem> FetchRecentPhotos()
@@ -128,6 +128,8 @@ namespace LocatrXamarin
                 if (photoJsonObject.Has("url_s"))
                 {
                     item.Url = photoJsonObject.GetString("url_s");
+                    item.Latitude = photoJsonObject.GetDouble("latitude");
+                    item.Longitude = photoJsonObject.GetDouble("longitude");
                     items.Add(item);
                 }
             }

@@ -4,32 +4,34 @@ using Android;
 using Android.Content.PM;
 using Android.Gms.Common.Apis;
 using Android.Gms.Location;
+using Android.Gms.Maps;
+using Android.Gms.Maps.Model;
 using Android.Graphics;
 using Android.Locations;
 using Android.OS;
 using Android.Runtime;
-using Android.Support.V4.App;
 using Android.Support.V4.Content;
 using Android.Util;
 using Android.Views;
-using Android.Widget;
 using Java.IO;
-using Java.Lang;
 using LocatrXamarin.Listeners;
 using LocatrXamarin.Models;
 
 namespace LocatrXamarin.Fragments
 {
-    public class LocatrFragment : Fragment, GoogleApiClient.IConnectionCallbacks
+    public class LocatrFragment : SupportMapFragment, GoogleApiClient.IConnectionCallbacks, IOnMapReadyCallback
     {
         private new const string Tag = "LocatrFragment";
         private const int RequestLocationPermissions = 0;
         private string[] _locationPermissions = new string[] { Manifest.Permission.AccessFineLocation, Manifest.Permission.AccessCoarseLocation };
 
-        private ImageView _imageView;
         private GoogleApiClient _client;
+        private GoogleMap _map;
+        private Bitmap _mapImage;
+        private GalleryItem _mapItem;
+        private Location _currentLocation;
 
-        public static LocatrFragment NewInstance()
+        public static new LocatrFragment NewInstance()
         {
             return new LocatrFragment();
         }
@@ -43,15 +45,9 @@ namespace LocatrXamarin.Fragments
                 .AddConnectionCallbacks(this)
                 .Build();
 
+            GetMapAsync(this);
+
             HasOptionsMenu = true;
-        }
-
-        public override View OnCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState)
-        {
-            View view = inflater.Inflate(Resource.Layout.fragment_locatr, container, false);
-            _imageView = view.FindViewById<ImageView>(Resource.Id.image);
-
-            return view;
         }
 
         public override void OnStart()
@@ -98,15 +94,6 @@ namespace LocatrXamarin.Fragments
             }
         }
 
-        public void OnConnected(Bundle connectionHint)
-        {
-            Activity.InvalidateOptionsMenu();
-        }
-
-        public void OnConnectionSuspended(int cause)
-        {
-        }
-
         public override void OnRequestPermissionsResult(int requestCode, string[] permissions, [GeneratedEnum] Permission[] grantResults)
         {
             switch (requestCode)
@@ -125,19 +112,67 @@ namespace LocatrXamarin.Fragments
             }
         }
 
+        public void OnConnected(Bundle connectionHint)
+        {
+            Activity.InvalidateOptionsMenu();
+        }
+
+        public void OnConnectionSuspended(int cause)
+        {
+        }
+
+        public void OnMapReady(GoogleMap googleMap)
+        {
+            _map = googleMap;
+            UpdateUI();
+        }
+
         private void OnLocationChanged(Location location)
         {
             Log.Info(Tag, $"Got a fix: {location}");
             new SearchTask()
             {
-                OnPostExecuteImpl = OnBitmapFetched
+                OnTaskCompleted = OnBitmapFetched
             }
             .Execute(location);
         }
 
-        private void OnBitmapFetched(Bitmap obj)
+        private void OnBitmapFetched(GalleryItem galleryItem, Bitmap bitmap, Location location)
         {
-            _imageView.SetImageBitmap(obj);
+            _mapItem = galleryItem;
+            _mapImage = bitmap;
+            _currentLocation = location;
+            UpdateUI();
+        }
+
+        private void UpdateUI()
+        {
+            if (_map == null || _mapImage == null)
+            {
+                return;
+            }
+
+            var itemPoint = new LatLng(_mapItem.Latitude, _mapItem.Longitude);
+            var myPoint = new LatLng(_currentLocation.Latitude, _currentLocation.Longitude);
+
+            var itemBitmap = BitmapDescriptorFactory.FromBitmap(_mapImage);
+            var itemMarker = new MarkerOptions()
+                .SetPosition(itemPoint)
+                .SetIcon(itemBitmap);
+            var myMarker = new MarkerOptions()
+                .SetPosition(myPoint);
+
+            _map.Clear();
+            _map.AddMarker(itemMarker);
+            _map.AddMarker(myMarker);
+
+            var bounds = new LatLngBounds.Builder()
+                .Include(itemPoint)
+                .Include(myPoint)
+                .Build();
+            var margin = Resources.GetDimensionPixelSize(Resource.Dimension.map_inset_margin);
+            var update = CameraUpdateFactory.NewLatLngBounds(bounds, margin);
+            _map.AnimateCamera(update);
         }
 
         private void FindImage()
@@ -160,9 +195,18 @@ namespace LocatrXamarin.Fragments
         {
             private GalleryItem _galleryItem;
             private Bitmap _bitmap;
+            private Location _location;
+
+            public SearchTask()
+            {
+                OnPostExecuteImpl = InvokeOnCompleted;
+            }
+
+            public Action<GalleryItem, Bitmap, Location> OnTaskCompleted { get; set; }
 
             protected override Bitmap DoInBackground(params Location[] parameters)
             {
+                _location = parameters[0];
                 var fetchr = new FlickrFetchr();
                 List<GalleryItem> items = fetchr.SearchPhotos(parameters[0]);
 
@@ -184,6 +228,11 @@ namespace LocatrXamarin.Fragments
                 }
 
                 return _bitmap;
+            }
+
+            private void InvokeOnCompleted(Bitmap obj)
+            {
+                OnTaskCompleted?.Invoke(_galleryItem, _bitmap, _location);
             }
         }
     }

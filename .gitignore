@@ -1,4 +1,7 @@
 # globs
+LocatrXamarin/maps_key.txt
+LocatrXamarin/Resources/values/google_maps_api.xml
+
 Makefile.in
 *.userprefs
 *.usertasks
